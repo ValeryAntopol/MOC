@@ -2,25 +2,27 @@ import math
 
 from tabulate import tabulate
 
-from lab1 import input_value
-
-
 ##############################################################################
 # Параметры задачи
 ##############################################################################
 def y_prime(x, y_x):
-    "y'(x) = -y(x) * (2 - cos(x))"
-    return -y_x * (2 - math.cos(x))
+    "y' = -3y + y^2"
+    #"y'(x) = -y(x) * (2 - cos(x))"
+    #return -y_x * (2 - math.cos(x))
+    return -3 * y_x + y_x ** 2
 
 # Задача Коши
 x_0, y_0 = 0.0, 1.0
 
 # Решение з.К. y(0) = 1
 def sol(x):
-    "y(x) = e^(sin(x) - 2x)"
-    return math.exp(math.sin(x) - 2 * x)
+    "y =  3/(2exp(3x) + 1)"
+    #"y(x) = e^(sin(x) - 2x)"
+    #return math.exp(math.sin(x) - 2 * x)
+    return 3 / (2 * math.exp(3 * x) + 1)
 
-taylor_coeffs = [1.0, -1.0, 1.0, -2.0, 5.0, -11.0]
+#taylor_coeffs = [1.0, -1.0, 1.0, -2.0, 5.0, -11.0]
+taylor_coeffs = [1.0, -2.0, 2.0, 6.0, -30.0, -35.0]
 ##############################################################################
 
 
@@ -127,12 +129,15 @@ def main():
         "Решение задачи Коши: " + sol.__doc__,
         sep='\n', end='\n\n')
 
-    N = input_value("Введите число шагов N: ",
-                    value_type=int, check=lambda N: N >= 0)
-    h = input_value("Введите h (h > 0): ", check=lambda h: h > 0)
+    #N = input_value("Введите число шагов N: ",
+    #                value_type=int, check=lambda N: N >= 0)
+    #h = input_value("Введите h (h > 0): ", check=lambda h: h > 0)
+    print("Введите число шагов N и шаг h > 0:")
+    N, h = list(map(float, input().split()))
+    N = int(N)
     print()
 
-    xs, ys = taylor(taylor_coeffs, x_0 - 2 * h, N + 2, h)
+    xs, ys = taylor(taylor_coeffs, x_0 - 2 * h, N + 3, h)
     compare("Метод разложения в ряд Тейлора", xs, ys, sol)
 
     xs, ys = euler1(y_prime, x_0, y_0, N, h)

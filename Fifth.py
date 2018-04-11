@@ -3,6 +3,7 @@ import math
 
 
 def f(x):
+    "x * x * x   + math.sin(x)"
     return x * x * x   + math.sin(x)
 
 
@@ -11,7 +12,7 @@ def w(x):
 
 
 def F(x):
-    return 1 / 4.0 * x * x * x * x   + math.cos(x)
+    return 1 / 4.0 * x * x * x * x  + math.cos(x)
 
 
 def middleRectangles(a, h, m, func):
@@ -41,8 +42,7 @@ def simpson(a, h, m, func):
 
 
 def main():
-    fstr = "f(x) = x^2"  # + sin(x)"
-    print(fstr)
+    print("f(x) = {0}".format(f.__doc__))
     print("Введите пределы интегрирования A, B и число m:")
     a, b, m = lmap(float, input().split())
     m = int(m)

@@ -20,7 +20,7 @@ def main():
         eps = float(input())
         if 0 < eps:
             break
-
++
         print("Допустимая погрешность должна быть положительным числом")
     sd = sepdiffs(xs, ys)
     tab = tt.Texttable()
