@@ -1,87 +1,155 @@
 import math
 
-import numpy as np
-from numpy.polynomial import polynomial, legendre
 from tabulate import tabulate
 
 from lab1 import input_value
-from lab2 import print_polynomial
-from lab5 import simpson
 
 
 ##############################################################################
 # Параметры задачи
 ##############################################################################
-a, b = 0, 1
+def y_prime(x, y_x):
+    "y'(x) = -y(x) * (2 - cos(x))"
+    return -y_x * (2 - math.cos(x))
 
-def f(x):
-    "f(x) = sin(x)"
-    return math.sin(x)
+# Задача Коши
+x_0, y_0 = 0.0, 1.0
 
-def w(x):
-    "w(x) = 1 / (x + 0.1)"
-    return 1 / (x + 0.1)
+# Решение з.К. y(0) = 1
+def sol(x):
+    "y(x) = e^(sin(x) - 2x)"
+    return math.exp(math.sin(x) - 2 * x)
+
+taylor_coeffs = [1.0, -1.0, 1.0, -2.0, 5.0, -11.0]
 ##############################################################################
 
 
-def gauss(f, a, b, N):
-    s = 0
-    xs, As = legendre.leggauss(N)
-    for x, A in zip(xs, As):
-        xm = x * (b - a) / 2 + (a + b) / 2
-        s += A * f(xm)
-    return s * (b - a) / 2
+def taylor_eval(coeffs, x, x_0):
+    res = 0
+    mul = 1
+    for i, coeff in enumerate(coeffs):
+        res += coeffs[i] * mul
+        mul *= (x - x_0) / (i + 1)
+    return res
 
 
-def gauss_mult(f, A, B, N, m):
-    s = 0
-    h = (B - A) / m
-    for i in range(m):
-        l, r = A + i * h, A + (i + 1) * h
-        s += gauss(f, l, r, N)
-    return s
+def taylor(coeffs, x_0, N, h):
+    xs = [x_0 + i * h for i in range(N)]
+    ys = [taylor_eval(coeffs, x, 0) for x in xs]
+    return xs, ys
 
+
+def euler1(y_prime, x_0, y_0, N, h):
+    xs, ys = [x_0], [y_0]
+
+    for _ in range(N):
+        x, y = xs[-1], ys[-1]
+        xs.append(x + h)
+        ys.append(y + h * y_prime(x, y))
+
+    return xs, ys
+
+
+def euler2(y_prime, x_0, y_0, N, h):
+    xs, ys = [x_0], [y_0]
+
+    for _ in range(N):
+        x, y = xs[-1], ys[-1]
+        xs.append(x + h)
+        ys.append(y + h * (y_prime(x, y) + y_prime(x + h, y + h * y_prime(x, y))) / 2)
+
+    return xs, ys
+
+
+def euler3(y_prime, x_0, y_0, N, h):
+    xs, ys = [x_0], [y_0]
+
+    for _ in range(N):
+        x, y = xs[-1], ys[-1]
+        xs.append(x + h)
+        ys.append(y + h * y_prime(x + h / 2, y + h * y_prime(x, y) / 2))
+
+    return xs, ys
+
+
+def runge_kutta(y_prime, x_0, y_0, N, h):
+    xs, ys = [x_0], [y_0]
+
+    for _ in range(N):
+        x, y = xs[-1], ys[-1]
+
+        k1 = h * y_prime(x, y)
+        k2 = h * y_prime(x + h / 2, y + k1 / 2)
+        k3 = h * y_prime(x + h / 2, y + k2 / 2)
+        k4 = h * y_prime(x + h, y + k3);
+
+        xs.append(x + h)
+        ys.append(y + (k1 + 2 * k2 + 2 * k3 + k4) / 6)
+
+    return xs, ys
+
+
+def adams_fd(y_prime, ks, x, h):
+    fd = [[h * y_prime(x - (4 - i) * h, ks[i]) for i in range(5)]]
+    for _ in range(4):
+        fd.append([y2 - y1 for y1, y2 in zip(fd[-1], fd[-1][1:])])
+    return fd
+
+
+def adams(y_prime, xs, ys, N, h):
+    xs, ys = list(xs), list(ys)
+
+    for i in range(N):
+        fd = adams_fd(y_prime, ys[-5:], xs[-1], h)
+        xs.append(xs[-1] + h)
+        ys.append(ys[-1] + fd[0][4] + fd[1][3] / 2 + 5 * fd[2][2] / 12 + 3 * fd[3][1] / 8 + 251 * fd[4][0] / 720)
+
+    return xs, ys
+
+
+def compare(header, xs, ys, sol):
+    print(
+        header,
+        tabulate(zip(range(len(xs)), xs, ys, [abs(y - sol(x)) for x, y in zip(xs, ys)]),
+                 headers=['#', 'x', 'y', 'R'], floatfmt='.8f'),
+        sep='\n', end='\n\n')
 
 def main():
     print(
-        "Лабораторная работа №6",
-        "Приближенное вычисление интегралов при помощи КФ НАСТ",
-        "-----------------------------------------------------",
+        "Лабораторная работа №7",
+        "Численное решение задачи Коши",
+        "-----------------------------",
         sep='\n', end='\n\n')
 
-    print(f.__doc__)
-    print(w.__doc__)
-    print("[a, b] = [{0}, {1}]".format(a, b))
+    print(
+        y_prime.__doc__,
+        "Задача Коши: y({0}) = {1}".format(x_0, y_0),
+        "Решение задачи Коши: " + sol.__doc__,
+        sep='\n', end='\n\n')
 
-    N = input_value("Введите N: ",
-                    value_type=int, check=lambda N: N > 0)
-    m = input_value("Введите число шагов m составной КФ: ",
-                    value_type=int, check=lambda m: m > 0)
+    N = input_value("Введите число шагов N: ",
+                    value_type=int, check=lambda N: N >= 0)
+    h = input_value("Введите h (h > 0): ", check=lambda h: h > 0)
     print()
 
-    J_gauss_ref = gauss_mult(lambda x: f(x) * w(x), a, b, N, m)
-    print("J =", J_gauss_ref, end='\n\n')
+    xs, ys = taylor(taylor_coeffs, x_0 - 2 * h, N + 2, h)
+    compare("Метод разложения в ряд Тейлора", xs, ys, sol)
 
-    mu = [simpson(lambda x: w(x) * (x ** k), a, b, 100000) for k in range(2 * N)]
-    print("Моменты весовой функции:", mu)
+    xs, ys = euler1(y_prime, x_0, y_0, N, h)
+    compare("Метод Эйлера #1", xs, ys, sol)
+    xs, ys = euler2(y_prime, x_0, y_0, N, h)
+    compare("Метод Эйлера #2", xs, ys, sol)
+    xs, ys = euler3(y_prime, x_0, y_0, N, h)
+    compare("Метод Эйлера #3", xs, ys, sol)
 
-    aval = np.linalg.solve([mu[i:i+N] for i in range(N)], [-x for x in mu[-N:]])
-    P = polynomial.Polynomial(aval) + polynomial.Polynomial(polynomial.polyx) ** N
-    print("Ортогональный w_n(x) =", print_polynomial(P))
+    xs, ys = runge_kutta(y_prime, x_0, y_0, N, h)
+    compare("Метод Рунге-Кутты", xs, ys, sol)
 
-    xs = P.roots()
-    print("Узлы КФ типа Гаусса:", xs)
+    xs = [x_0 - (2 - i) * h for i in range(5)]
+    ys = [taylor_eval(taylor_coeffs, x, 0) for x in xs]
 
-    W = polynomial.Polynomial([1])
-    for x_i in xs:
-        W *= polynomial.Polynomial([-x_i, 1])
-    W_prime = W.deriv()
-    As = [gauss_mult(lambda x: w(x) * W(x) / ((x - x_i) * W_prime(x_i)), a, b, N, m) for x_i in xs]
-
-    print("Коэффициенты КФ:", As)
-
-    J_gauss = sum(A * f(x) for x, A in zip(xs, As))
-    print("J =", J_gauss)
+    xs, ys = adams(y_prime, xs, ys, N - 2, h)
+    compare("Метод Адамса", xs, ys, sol)
 
 
 if __name__ == '__main__':
