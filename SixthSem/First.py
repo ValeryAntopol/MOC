@@ -57,15 +57,25 @@ def identity(mat):
 def gauss(a, b, eps=0):
     mat = deepcopy(a)
     add_col(mat, b)
+    i = 1
     for row in range(n_rows(mat)):
         if np.abs(mat[row][row]) < eps:
             print("Предупреждение: деление на %f" % (mat[row][row]))
 
-        mat[row] = np.divide(mat[row], mat[row][row])
+        #mat[row] = np.divide(mat[row], mat[row][row])
+        divisor = mat[row][row]
+        print("Ведущий элемент %f" % divisor)
+        for col in range(row+1, n_cols(mat)):
+            mat[row][col] = mat[row][col] / divisor
+
         for row2 in range(row + 1, n_rows(mat)):
             c = mat[row2][row]
-            for col in range(n_cols(mat)):
+            for col in range(row + 1, n_cols(mat)):
                 mat[row2][col] -= mat[row][col] * c
+
+        print("Расширенная метрица системы, шаг %i" % i)
+        print_mat(mat)
+        i += 1
 
     xs = [np.float32(0) for _ in range(n_rows(mat))]
     for x in reversed(range(len(xs))):
@@ -97,7 +107,7 @@ def gauss_main_col(a, b, eps=0):
             for col in range(n_cols(mat)):
                 mat[row2][col] -= mat[row][col] * c
 
-    xs = [np.float32(0) for _ in range(n_rows(mat))]
+    xs = [np.float64(0) for _ in range(n_rows(mat))]
     for x in reversed(range(len(xs))):
         xs[x] = mat[x][-1]
         for x2 in range(x + 1, len(xs)):
@@ -111,18 +121,21 @@ def gauss_main_col_det(a):
     det = np.float32(1)
     for row in range(n_rows(mat)):
         max_ind = row
-        for row2 in range(row + 1, n_rows(mat)):
+        for row2 in range(row, n_rows(mat)):
             if np.abs(mat[row2][row]) > np.abs(mat[max_ind][row]):
                 max_ind = row2
 
         tmp = mat[row]
         mat[row] = mat[max_ind]
         mat[max_ind] = tmp
+        det *= mat[row][row]
+        print("множителдь определителя %f" % mat[row][row])
         mat[row] = np.divide(mat[row], mat[row][row])
         if row != max_ind:
             det *= np.float32(-1)
 
-        det *= mat[row][row]
+
+
         for row2 in range(row + 1, n_rows(mat)):
             c = mat[row2][row]
             for col in range(n_cols(mat)):
@@ -488,7 +501,7 @@ def implicit_scheme(n, m, g, x, t, alpha, beta, tau, f, h, U):
 
 
 def main_first():
-    a = [[np.float32(6.8704E-06), np.float32(-73592E-03), np.float32(4.34112)],
+    a = [[np.float32(6.8704E-06), np.float32(-73.592E-03), np.float32(4.34112)],
          [np.float32(6.2704E-03), np.float32(-0.73592),   np.float32(1.57112)],
          [np.float32(0.90704),     np.float32(0.3208),   np.float32(1.02112)]]
     b = [np.float32(3.09008),
@@ -496,7 +509,7 @@ def main_first():
          np.float32(2.04310)]
 
     ab = deepcopy(a)
-    add_col(ab,b)
+    add_col(ab, b)
     print("Точные методы решения систем линейных алгебраических уравнений. Метод Гаусса.")
     print("Решить СЛАУ Ax=b")
     print("A|b=")
@@ -514,25 +527,25 @@ def main_first():
     print("x=")
     print_mat(xs1)
     print("Модуль невязки:")
-    print(vlen(err1))
+    print(vec_norm(err1))
     print()
     print("Метод Гаусса с выбором главного элемента по столбцу")
     print("x=")
     print_mat(xs2)
     print("Модуль невязки:")
-    print(vlen(err2))
+    print(vec_norm(err2))
     print()
     print("Определитель матрицы A:")
     print(gauss_main_col_det(a))
 
 
 def main_second():
-    a = [[2.20219, 0.33266, 0.16768],
-         [0.33266, 3.17137, 0.54055],
-         [0.16768, 0.54055, 4.92343]]
-    b = [2.17523,
-         6.58335,
-         6.36904]
+    a = [[np.float64(2.20219), np.float64(0.33266), np.float64(0.16768)],
+         [np.float64(0.33266), np.float64(3.17137), np.float64(0.54055)],
+         [np.float64(0.16768), np.float64(0.54055), np.float64(4.92343)]]
+    b = [np.float64(2.17523),
+         np.float64(6.58335),
+         np.float64(6.36904)]
 
     ab = deepcopy(a)
     add_col(ab, b)
@@ -547,14 +560,19 @@ def main_second():
     print("m = %f <= lambda <= %f = M" % (m, M))
     print()
 
-    print("Введите точность, eps = ")
-    eps = np.float32(input())
-    print()
-
     print("Методом Гаусса с выбором главного элемента по столбцу:")
     x_gauss = gauss_main_col(a, b)
     err = np.subtract(np.matmul(a, x_gauss), b)
-    print("||Ax - b|| = %f" % (vlen(err)))
+
+    print("Ax=")
+    print_mat(np.matmul(a, x_gauss))
+    print("b=")
+    print_mat(b)
+    print("||Ax - b|| = {0:<.10}".format(vec_norm(err)))
+    print()
+
+    print("Введите точность, eps = ")
+    eps = np.float64(input())
     print()
 
     alpha = np.float32(2) / (m + M)
@@ -838,9 +856,8 @@ def main_sixth():
     implicit_scheme(N, m2, g, x, t2, alpha, beta, tau2, f, h, U)
 
 
-
 if __name__ == "__main__":
-    main_third()
+    main_second()
 
 
 
